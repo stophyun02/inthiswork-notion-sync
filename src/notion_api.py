@@ -239,9 +239,19 @@ class NotionClient:
                 message = error.get("message") or response.text[:1000] or "응답 본문 없음"
                 request_id = error.get("request_id") or response.headers.get("x-request-id", "")
                 request_suffix = f" (request_id={request_id})" if request_id else ""
+                guidance = ""
+                if response.status_code == 404 and path.startswith("/data_sources/"):
+                    guidance = (
+                        "\nNotion 동기화 대상에 접근할 수 없습니다. "
+                        "NOTION_DATA_SOURCE_ID가 데이터베이스 ID가 아닌 데이터 소스 ID인지 확인하세요. "
+                        "대상 원본 데이터베이스의 연결 설정에서 NOTION_TOKEN에 해당하는 내부 연결을 "
+                        "추가하고, 페이지 이동 후에도 접근 권한이 유지되는지 확인하세요. "
+                        "ChatGPT/Codex의 Notion 연결과 GitHub Actions의 내부 연결 권한은 별개입니다. "
+                        "기존 데이터베이스가 있다면 Bootstrap으로 새로 만들지 마세요."
+                    )
                 raise RuntimeError(
                     f"Notion API 오류 HTTP {response.status_code} [{code}] "
-                    f"{method} {path}: {message}{request_suffix}"
+                    f"{method} {path}: {message}{request_suffix}{guidance}"
                 )
             if not response.content:
                 return {}
