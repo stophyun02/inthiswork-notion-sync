@@ -125,3 +125,22 @@ def test_schema_migration_adds_only_missing_properties_and_is_idempotent():
     patch_calls = [call for call in client._request.call_args_list if call.args[0] == "PATCH"]
     assert len(patch_calls) == 1
     assert properties["기존"] == {"type": "title"}
+
+
+def test_missing_data_source_explains_separate_connection_permissions_without_retry():
+    client = NotionClient("private-test-token", min_interval_seconds=0)
+    response = Mock(status_code=404, ok=False, headers={})
+    response.json.return_value = {
+        "code": "object_not_found", "message": "Not found", "request_id": "req-404"
+    }
+    client.session.request = Mock(return_value=response)
+    with pytest.raises(RuntimeError) as error:
+        client.retrieve_data_source("1234567890abcdef1234567890abcdef")
+    message = str(error.value)
+    assert "HTTP 404 [object_not_found]" in message
+    assert "req-404" in message
+    assert "내부 연결" in message
+    assert "권한은 별개" in message
+    assert "Bootstrap으로 새로 만들지" in message
+    assert "private-test-token" not in message
+    assert client.session.request.call_count == 1

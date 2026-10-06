@@ -16,6 +16,11 @@ on:
         required: true
         default: true
         type: boolean
+      check_notion_only:
+        description: "Notion 접근 권한·필수 속성만 검사 (수집·쓰기 없음, dry_run과 별개)"
+        required: true
+        default: false
+        type: boolean
       max_list_pages:
         description: "비워 두면 기본값 사용. 테스트는 1 권장, full 전체는 0"
         required: false
@@ -57,6 +62,7 @@ jobs:
 
       - name: Sync posts
         env:
+          CHECK_NOTION_ONLY: ${{ inputs.check_notion_only && 'true' || 'false' }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATA_SOURCE_ID: ${{ vars.NOTION_DATA_SOURCE_ID }}
           NOTION_API_VERSION: "2025-09-03"
@@ -72,10 +78,19 @@ jobs:
           REQUEST_TIMEOUT_SECONDS: "25"
         run: |
           set -o pipefail
-          python -u -m src.sync 2>&1 | tee sync-output.txt
+          set +e
+          if [[ "$CHECK_NOTION_ONLY" == "true" ]]; then
+            python -u -m src.check_notion 2>&1 | tee sync-output.txt
+            sync_status=$?
+          else
+            python -u -m src.sync 2>&1 | tee sync-output.txt
+            sync_status=$?
+          fi
+          set -e
           {
             echo "## 동기화 실행 결과"
             echo '```text'
             tail -n 80 sync-output.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          exit "$sync_status"

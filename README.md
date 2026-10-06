@@ -241,3 +241,21 @@ pytest -q
 ```
 
 실제 실행 환경 변수는 `.env.example`을 참고하되 `.env` 파일은 GitHub에 올리지 마세요.
+
+### Sync에서 Notion 404 / object_not_found
+
+대상 데이터 소스가 없거나, `NOTION_TOKEN`에 해당하는 내부 연결이 원본 데이터베이스에
+접근할 수 없다는 뜻입니다. ChatGPT/Codex에서 조회되는 것만으로 GitHub 연결의 권한이
+확인되지는 않습니다. 원본 데이터베이스의 연결 설정에서 오류에 표시된 내부 연결을
+추가하고, 페이지 이동 이후 권한이 유지되는지 확인하세요. 토큰이 다른 연결의 것이라면
+GitHub Secret을 올바른 연결의 토큰으로 수정하세요. 토큰을 로그나 채팅에 붙여넣지 마세요.
+
+`NOTION_DATA_SOURCE_ID`에는 database ID가 아닌 data source ID가 필요합니다.
+기존 데이터베이스가 있다면 Bootstrap을 다시 실행하거나 ID를 임의 교체하지 마세요.
+
+권한 복구 후 `InThisWork Design Sync`를 `check_notion_only: true`로 실행하면
+동일한 GitHub Secret으로 접근·필수 속성만 검사하며, 웹 수집이나 Notion 쓰기는 하지 않습니다.
+이 옵션은 `dry_run`보다 우선합니다. 일반 `dry_run: true`는 Notion에 연결하지 않으므로
+Notion 권한 검증으로 사용할 수 없습니다. 검사 성공 후 `check_notion_only: false`,
+`recent / dry_run: false / max_list_pages: 1 / max_posts: 3`으로 소량 동기화를 확인하세요.
+실패 시에도 실행 Summary에 오류가 남고 작업은 실패 상태를 유지합니다.
